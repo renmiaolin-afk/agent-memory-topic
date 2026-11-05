@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>选一家 · 周边商家</title>
+  <link rel="stylesheet" href="https://unpkg.com/antd-mobile@5.39.0/bundle/style.css" />
+  <style>
+    :root{--adm-color-primary:#1677ff;--ink:#20314d;--muted:#73839c;--line:#e3eaf5;--font-xl:24px;--font-lg:17px;--font-md:17px;--font-body:15px;--font-caption:15px;--space-sm:8px;--space-md:16px;--space-lg:16px;--space-xl:24px;--adm-font-size-main:15px;--adm-font-size-1:15px;--adm-font-size-2:15px;--adm-font-size-3:15px;--adm-font-size-4:15px;--adm-font-size-5:15px;--adm-font-size-6:15px;--adm-font-size-7:15px;--adm-font-size-8:17px;--adm-font-size-9:17px;--adm-font-size-10:17px}
+    *{box-sizing:border-box}
+    body{margin:0;background:#fafafa;color:var(--ink);font-size:var(--font-body);font-family:-apple-system,BlinkMacSystemFont,"PingFang SC",sans-serif;padding-top:env(safe-area-inset-top);-webkit-font-smoothing:antialiased}
+    h1,h2,h3,p{margin:0}
+    button{font:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;border:0;background:none;color:inherit}
+    input{font:inherit}
+    button:focus-visible,input:focus-visible{outline:3px solid #86b7ff;outline-offset:2px}
+    .app{max-width:560px;margin:0 auto;min-height:100vh;padding:0 16px max(32px,env(safe-area-inset-bottom))}
+    @media(min-width:701px){.app{box-shadow:0 0 60px #1b4b8d10}}
+
+    .head{padding:18px 0 4px;display:grid;gap:var(--space-md)}
+    .loc{display:flex;align-items:center;gap:6px;font-size:var(--font-caption);color:#73839c}
+    .loc b{color:#425b80;font-weight:600}
+    .loc .dot{width:5px;height:5px;border-radius:50%;background:#bcd0ea}
+    .head h1{font-size:var(--font-xl);font-weight:700}
+    .head .lead{font-size:var(--font-body);line-height:1.8;color:#64748b}
+    .metrics{display:flex;gap:var(--space-md);font-size:var(--font-caption);color:#73839c}
+    .metrics b{font-size:var(--font-lg);color:#2456a5;font-weight:700;margin-right:4px}
+
+    .filters{display:flex;gap:var(--space-sm);overflow-x:auto;scrollbar-width:none;padding:var(--space-md) 0 var(--space-sm)}
+    .filters::-webkit-scrollbar{display:none}
+    .chip{flex:0 0 auto;background:#fff;border:1px solid var(--line);border-radius:999px;color:#657896;font-size:var(--font-caption);padding:7px 14px;min-height:36px}
+    .chip.active{color:#1677ff;border-color:#9cc5ff;background:#eaf3ff;font-weight:600}
+
+    .feed{display:grid;gap:var(--space-lg);padding-top:var(--space-sm)}
+    .shop{background:#fff;border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:border-color .2s,box-shadow .2s}
+    .shop.picked{border-color:#9cc5ff;box-shadow:0 0 0 3px #1677ff12}
+    .cover{position:relative;display:block;width:100%;aspect-ratio:16/10;overflow:hidden;padding:0}
+    .cover-art{position:absolute;inset:0}
+    .cover img{width:100%;height:100%;object-fit:cover;display:block}
+    .texture{position:absolute;inset:0;background-image:radial-gradient(#ffffffa8 1px,transparent 1px);background-size:16px 16px;opacity:.7}
+    .glow{position:absolute;width:150px;height:150px;border-radius:50%;background:#ffffffa6;box-shadow:0 16px 40px #20314d12;left:50%;top:50%;transform:translate(-50%,-50%)}
+    .cover-emoji{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:74px;line-height:1;filter:drop-shadow(0 12px 20px #20314d33)}
+    .shade{position:absolute;inset:auto 0 0 0;height:46%;background:linear-gradient(transparent,#20314d1f)}
+    .zoom-hint{position:absolute;right:12px;bottom:12px;background:#20314dcc;color:#fff;font-size:13px;padding:5px 10px;border-radius:999px}
+    .body{padding:14px 16px 16px;display:grid;gap:10px}
+    .row{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+    .row h3{font-size:var(--font-lg);font-weight:650}
+    .rating{font-size:var(--font-caption);color:#2456a5;font-weight:700;white-space:nowrap}
+    .rating small{font-weight:400;color:#8ea0b8;margin-left:4px}
+    .meta{font-size:var(--font-caption);color:#73839c;display:flex;gap:6px;flex-wrap:wrap}
+    .meta .sep{color:#c4d2e6}
+    .blurb{font-size:var(--font-body);line-height:1.75;color:#536681}
+    .tags{display:flex;gap:6px;flex-wrap:wrap}
+    .tag{font-size:13px;color:#527198;background:#f4f8ff;border:1px solid #dce7f7;border-radius:6px;padding:3px 8px}
+
+    .pick{justify-self:start;display:inline-flex;align-items:center;gap:6px;background:#1677ff;color:#fff;border-radius:10px;font-size:var(--font-body);font-weight:600;padding:10px 18px;min-height:44px}
+    .pick:active{background:#0f63d8}
+    .pick .plus{font-size:16px;line-height:1}
+
+    .note{display:grid;gap:var(--space-sm);background:#f6faff;border:1px solid #dce9ff;border-radius:12px;padding:12px}
+    .note-label{font-size:13px;color:#526d96;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+    .note-label b{color:#2456a5;font-weight:600}
+    .note-input{width:100%;border:1px solid #cfe0f6;background:#fff;border-radius:10px;padding:11px 12px;font-size:16px;color:var(--ink);min-height:46px}
+    .note-input::placeholder{color:#9fb0c7}
+    .note-actions{display:flex;gap:var(--space-sm);justify-content:flex-end}
+    .btn-ghost{background:#fff;border:1px solid var(--line);color:#657896;border-radius:10px;font-size:var(--font-body);padding:9px 16px;min-height:44px}
+    .btn-primary{background:#1677ff;border:1px solid #1677ff;color:#fff;border-radius:10px;font-size:var(--font-body);font-weight:600;padding:9px 18px;min-height:44px}
+    .btn-primary:active{background:#0f63d8}
+
+    .chosen{display:grid;gap:6px;background:#f2f8ff;border:1px solid #dce9ff;border-radius:12px;padding:12px}
+    .chosen-line{display:flex;align-items:center;gap:8px;font-size:var(--font-body);color:#2456a5;font-weight:600}
+    .chosen-line .check{width:20px;height:20px;border-radius:50%;background:#1677ff;color:#fff;display:grid;place-items:center;font-size:12px}
+    .chosen-line .link{margin-left:auto;font-size:13px;color:#657896;font-weight:400;text-decoration:underline;text-underline-offset:3px}
+    .chosen p{font-size:var(--font-body);color:#536681;line-height:1.7;word-break:break-word}
+
+    .empty{text-align:center;color:#73839c;font-size:var(--font-body);line-height:1.9;padding:48px 16px}
+    .footer{padding:var(--space-xl) 0 0;text-align:center;font-size:13px;color:#a1aec2;line-height:1.9}
+
+    .zoom{position:fixed;inset:0;z-index:100;background:#0b1524;display:grid;grid-template-rows:1fr auto;gap:var(--space-md);padding:max(16px,env(safe-area-inset-top)) 16px max(16px,env(safe-area-inset-bottom))}
+    .zoom-close{position:absolute;right:14px;top:max(14px,env(safe-area-inset-top));width:40px;height:40px;border-radius:50%;background:#ffffff26;color:#fff;font-size:18px;display:grid;place-items:center}
+    .zoom-stage{align-self:center;justify-self:center;width:100%;max-width:520px;display:grid;gap:var(--space-md)}
+    .zoom-art{position:relative;aspect-ratio:4/3;border-radius:18px;overflow:hidden;box-shadow:0 24px 60px #00000059}
+    .zoom-art img{width:100%;height:100%;object-fit:cover;display:block}
+    .zoom-art .cover-emoji{font-size:min(30vw,132px)}
+    .zoom-caption{color:#fff;display:grid;gap:6px}
+    .zoom-caption h2{font-size:var(--font-xl);font-weight:700}
+    .zoom-caption p{font-size:var(--font-body);color:#c3d2e6;line-height:1.7}
+    .zoom-actions{display:grid;gap:10px;max-width:520px;width:100%;justify-self:center}
+    .zoom-pick{background:#fff;color:#0f63d8;border-radius:12px;font-size:var(--font-md);font-weight:650;padding:13px;min-height:48px}
+    .zoom-tip{font-size:13px;color:#8fa3bd;padding:8px}
+
+    .fallback{max-width:560px;margin:0 auto;padding:24px 16px 32px;font-size:var(--font-body);line-height:1.9}
+    .fallback h1{font-size:var(--font-xl);margin:8px 0 12px}
+    .fallback .offline-note{background:#edf4ff;color:#526d96;padding:12px 14px;border-radius:10px;font-size:13px}
+    .fallback h2{font-size:var(--font-lg);margin:24px 0 10px}
+    .fallback details{border:1px solid var(--line);background:#fff;border-radius:12px;padding:12px 14px;margin:10px 0}
+    .fallback summary{cursor:pointer;font-weight:600}
+    .fallback .loading{padding:10px 0;font-size:13px;color:#8ea0b8}
+  </style>
+  <script type="importmap">
+    {"imports":{"react":"https://esm.sh/react@18.3.1","react-dom":"https://esm.sh/react-dom@18.3.1?external=react","react-dom/client":"https://esm.sh/react-dom@18.3.1/client?external=react","antd-mobile":"https://esm.sh/antd-mobile@5.39.0?external=react,react-dom&bundle"}}
+  </script>
+</head>
+<body>
+  <div id="root"><main class="fallback">
+    <p>知序 · 周边商家</p>
+    <h1>选一家</h1>
+    <div class="offline-note">示例内容 · 商家与评价均为虚构，用于展示排版</div>
+    <h2>今日可选</h2>
+    <details open><summary>六号院咖啡 · 咖啡 · 4.9</summary><p>¥38/人 · 340m · 藏在小院里，豆单每周换。</p></details>
+    <details><summary>胡同面包房 · 烘焙 · 4.8</summary><p>¥32/人 · 220m · 早上八点第一炉可颂。</p></details>
+    <details><summary>老灶川味小馆 · 正餐 · 4.7</summary><p>¥68/人 · 480m · 水煮鱼按份卖，鱼片厚实不柴。</p></details>
+    <p class="loading" id="load-status">正在联网加载交互版…离线时仍可阅读上方内容。</p>
+  </main></div>
+  <script type="module">
+    const root = document.getElementById('root');
+    try {
+      const [R, DOM, A] = await Promise.all([import('react'), import('react-dom/client'), import('antd-mobile')]);
+      const {createElement:h, useState, useEffect, useRef} = R;
+      const {Toast} = A;
+
+      const shops = [
+        {id:'m1',name:'六号院咖啡',emoji:'☕️',hue:24,cat:'咖啡',rating:4.9,monthly:1580,price:38,dist:340,tags:['手冲','有院子','宠物友好'],blurb:'藏在小院里，进门先过一个葡萄架。豆单每周换，手冲可以试喝两口再决定。'},
+        {id:'m2',name:'胡同面包房',emoji:'🥐',hue:30,cat:'烘焙',rating:4.8,monthly:1268,price:32,dist:220,tags:['现烤','适合早午餐','窗外有梧桐'],blurb:'早上八点第一炉可颂，黄油香从门口飘到街角。木质长桌不赶人。'},
+        {id:'m3',name:'老灶川味小馆',emoji:'🌶️',hue:8,cat:'正餐',rating:4.7,monthly:2140,price:68,dist:480,tags:['下饭','两人份','可调辣度'],blurb:'水煮鱼按份卖，鱼片厚实不柴。辣度能点微辣，锅气还在。'},
+        {id:'m4',name:'深夜居酒屋 灯',emoji:'🍶',hue:222,cat:'正餐',rating:4.6,monthly:860,price:128,dist:760,tags:['到 1 点','吧台六座','一个人也能坐'],blurb:'吧台只有六个位置，师傅会问你今天想喝清爽的还是浓郁的。'},
+        {id:'m5',name:'阿婆牛杂粉',emoji:'🍜',hue:18,cat:'小吃',rating:4.5,monthly:3260,price:22,dist:150,tags:['开了 12 年','出餐快','可加辣'],blurb:'汤底每天四点开始熬，牛杂处理得干净。小碗就够吃，加一份萝卜是本地人点法。'},
+        {id:'m6',name:'麦香早点铺',emoji:'🥟',hue:44,cat:'小吃',rating:4.5,monthly:2980,price:15,dist:90,tags:['六点开门','现包','只做早餐'],blurb:'包子现包现蒸，六点半前到能吃第一笼。豆浆现磨，可以要不加糖的。'},
+        {id:'m7',name:'冰室 1987',emoji:'🍨',hue:326,cat:'甜品',rating:4.5,monthly:1340,price:28,dist:430,tags:['港式','菠萝油','下午茶'],blurb:'菠萝油外皮够脆，黄油厚切。奶茶用丝袜拉过，默认偏甜记得说少甜。'},
+        {id:'m8',name:'北岸轻食',emoji:'🥗',hue:140,cat:'正餐',rating:4.4,monthly:940,price:45,dist:610,tags:['低卡','热量标注','可堂食'],blurb:'每道菜都标了热量和蛋白质，酱汁单独放，鸡胸不柴。'},
+        {id:'m9',name:'炭火烧烤 老三',emoji:'🍢',hue:12,cat:'正餐',rating:4.6,monthly:1780,price:78,dist:890,tags:['炭火','露天位','到 2 点'],blurb:'炭火烤不是电炉，羊肉串肥瘦相间，老板会按人数劝你别点太多。'},
+        {id:'m10',name:'江南面馆',emoji:'🥢',hue:196,cat:'小吃',rating:4.4,monthly:1650,price:36,dist:520,tags:['现炒浇头','汤面拌面','可免葱'],blurb:'浇头现炒，腰花和鳝丝都没腥味。拌面多给一勺葱油，汤面配清汤。'}
+      ];
+
+      const cats = ['全部','咖啡','烘焙','正餐','小吃','甜品'];
+      const money = n => '¥' + n;
+      const dist = m => m < 1000 ? m + 'm' : (m / 1000).toFixed(1) + 'km';
+      const grad = s => ({background:'linear-gradient(135deg,hsl(' + s.hue + ' 74% 94%),hsl(' + (s.hue + 22) + ' 62% 85%))'});
+
+      function App(){
+        const [cat, setCat] = useState('全部');
+        const [picked, setPicked] = useState('');
+        const [chosen, setChosen] = useState(null);
+        const [note, setNote] = useState('');
+        const [zoom, setZoom] = useState(null);
+        const noteRef = useRef(null);
+
+        useEffect(() => {
+          if (picked && noteRef.current) noteRef.current.focus();
+        }, [picked]);
+
+        useEffect(() => {
+          if (!zoom) return;
+          const prev = document.body.style.overflow;
+          document.body.style.overflow = 'hidden';
+          const onKey = e => { if (e.key === 'Escape') setZoom(null); };
+          window.addEventListener('keydown', onKey);
+          return () => { document.body.style.overflow = prev; window.removeEventListener('keydown', onKey); };
+        }, [zoom]);
+
+        const list = cat === '全部' ? shops : shops.filter(s => s.cat === cat);
+
+        function startPick(id){
+          setPicked(id);
+          setNote(chosen && chosen.id === id ? chosen.note : '');
+          setZoom(null);
+        }
+        function cancelPick(){ setPicked(''); setNote(''); }
+        function confirmPick(s){
+          const text = note.trim();
+          setChosen({id:s.id, note:text});
+          setPicked(''); setNote('');
+          Toast.show({content:'已选：' + s.name + (text ? ' · 已记下备注' : ''), duration:1800});
+        }
+
+        function noteForm(s){
+          return h('div', {className:'note'},
+            h('div', {className:'note-label'}, h('b', null, '已选中这家'), '写下人数、时间或想坐的位置，回车即可确定'),
+            h('input', {
+              className:'note-input', ref:noteRef, value:note,
+              onChange:e => setNote(e.target.value),
+              onKeyDown:e => { if (e.key === 'Enter') confirmPick(s); },
+              placeholder:'例如：两个人，周六 11:30，想坐窗边',
+              'aria-label':'填写选择这家店的需求'
+            }),
+            h('div', {className:'note-actions'},
+              h('button', {className:'btn-ghost', onClick:cancelPick}, '取消'),
+              h('button', {className:'btn-primary', onClick:() => confirmPick(s)}, '确定选择')
+            )
+          );
+        }
+
+        function preview(s){
+          return h('div', {className:'zoom-art', style:grad(s)},
+            s.img ? h('img', {src:s.img, alt:s.name}) : h('div', {className:'texture'}),
+            !s.img && h('div', {className:'glow'}),
+            !s.img && h('span', {className:'cover-emoji'}, s.emoji),
+            h('div', {className:'shade'})
+          );
+        }
+
+        return h('div', {className:'app'},
+          h('header', {className:'head'},
+            h('div', {className:'loc'}, '朝阳 · 望京', h('span', {className:'dot'}), '阜通东大街 6 号'),
+            h('h1', null, '选一家'),
+            h('p', {className:'lead'}, '先看大图，再决定；定下来点「选这个」，直接写你的要求。'),
+            h('div', {className:'metrics'},
+              h('span', null, h('b', null, shops.length), '家在附近'),
+              h('span', null, h('b', null, '15'), '分钟步行圈'),
+              h('span', null, h('b', null, chosen ? 1 : 0), '家已选')
+            )
+          ),
+          h('div', {className:'filters'}, ...cats.map(c => h('button', {
+            key:c, className:'chip' + (cat === c ? ' active' : ''), 'aria-pressed':cat === c,
+            onClick:() => setCat(c)
+          }, c))),
+          h('div', {className:'feed'}, ...list.map(s => h('article', {key:s.id, className:'shop' + (picked === s.id ? ' picked' : '')},
+            h('button', {
+              className:'cover', style:grad(s), onClick:() => setZoom(s),
+              'aria-label':'查看 ' + s.name + ' 的大图'
+            },
+              s.img ? h('img', {src:s.img, alt:s.name}) : h('div', {className:'texture'}),
+              !s.img && h('div', {className:'glow'}),
+              !s.img && h('span', {className:'cover-emoji'}, s.emoji),
+              h('div', {className:'shade'}),
+              h('span', {className:'zoom-hint'}, '点击看大图')
+            ),
+            h('div', {className:'body'},
+              h('div', {className:'row'},
+                h('h3', null, s.name),
+                h('span', {className:'rating'}, '★ ' + s.rating.toFixed(1), h('small', null, '月售 ' + s.monthly))
+              ),
+              h('div', {className:'meta'}, s.cat, h('span', {className:'sep'}, '·'), money(s.price) + '/人', h('span', {className:'sep'}, '·'), dist(s.dist), h('span', {className:'sep'}, '·'), '营业中'),
+              h('p', {className:'blurb'}, s.blurb),
+              h('div', {className:'tags'}, ...s.tags.map(t => h('span', {key:t, className:'tag'}, t))),
+              picked === s.id
+                ? noteForm(s)
+                : chosen && chosen.id === s.id
+                  ? h('div', {className:'chosen'},
+                      h('div', {className:'chosen-line'}, h('span', {className:'check'}, '✓'), '已选这家',
+                        h('button', {className:'link', onClick:() => startPick(s.id)}, '修改备注')),
+                      h('p', null, chosen.note || '没有备注，可直接到店。')
+                    )
+                  : h('button', {className:'pick', onClick:() => startPick(s.id)}, h('span', {className:'plus'}, '＋'), '选这个')
+            )
+          ))),
+          list.length ? null : h('div', {className:'empty'}, '这个分类暂时没有店，换一个看看。'),
+          h('div', {className:'footer'}, '示例商家与评价均为虚构，仅用于展示版面。'),
+
+          zoom && h('div', {className:'zoom', role:'dialog', 'aria-modal':'true', 'aria-label':zoom.name + ' 大图'},
+            h('button', {className:'zoom-close', onClick:() => setZoom(null), 'aria-label':'关闭大图'}, '✕'),
+            h('div', {className:'zoom-stage'},
+              preview(zoom),
+              h('div', {className:'zoom-caption'},
+                h('h2', null, zoom.name),
+                h('p', null, '★ ' + zoom.rating.toFixed(1) + ' · ' + zoom.cat + ' · ' + money(zoom.price) + '/人 · ' + dist(zoom.dist)),
+                h('p', null, zoom.blurb)
+              )
+            ),
+            h('div', {className:'zoom-actions'},
+              h('button', {className:'zoom-pick', onClick:() => startPick(zoom.id)}, '选这个 · 去写要求'),
+              h('button', {className:'zoom-tip', onClick:() => setZoom(null)}, '返回列表')
+            )
+          )
+        );
+      }
+      DOM.createRoot(root).render(h(App));
+    } catch (error) {
+      console.error(error);
+      const status = document.getElementById('load-status');
+      if (status) { status.setAttribute('role', 'status'); status.textContent = '当前为基础阅读版。联网后刷新可加载大图、选择与备注。'; }
+    }
+  </script>
+</body>
+</html>
