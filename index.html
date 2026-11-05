@@ -19,6 +19,17 @@
     .mobile-nav .nav-item.active{color:#1677ff}button:focus-visible,a:focus-visible{outline-color:#86b7ff}.adm-list{--font-size:17px;--padding-left:16px;--padding-right:16px}.adm-list-item-content{padding-top:16px;padding-bottom:16px}.adm-tag{--border-color:#9cc5ff}.fallback ul,.markdown ul,.markdown ol{padding-left:24px;margin:16px 0}.fallback li,.markdown li{margin:8px 0}.section-head{flex-wrap:wrap}.graph-node.central{max-width:120px}.graph-node.central small{white-space:nowrap}.graph-node{max-width:112px}.graph-node.central{min-width:120px;max-width:128px}.graph-node.central small{font-size:15px}.eyebrow{letter-spacing:0}.topbar{flex-direction:column;align-items:flex-start}.topic-heading{flex-wrap:wrap}.topic-heading small{margin-left:0}.source-row{flex-wrap:wrap}.source-row>.adm-button{margin-left:auto}@media(max-width:360px){.graph-node{min-width:88px;max-width:96px}.graph-node.central{min-width:112px;max-width:120px}}
     @media(max-width:360px){.main{padding-left:var(--space-md);padding-right:var(--space-md)}.card{padding:var(--space-md)}.actions .adm-button{font-size:var(--font-caption);padding:var(--space-sm)}.graph-node{min-width:80px;max-width:88px}.graph-node.central{min-width:88px;max-width:92px}.graph-node .node-title{font-size:var(--font-caption)}.mobile-nav .nav-item{gap:var(--space-sm);padding:var(--space-md) 0}.source-row{flex-wrap:wrap}.source-row>.adm-button{margin-left:auto}}
     @media(max-width:360px){.graph-node{min-width:88px;max-width:96px}.graph-node.central{min-width:112px;max-width:120px}}
+    /* 原文与观点在一级页面内直接展开 */
+    .source-item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:var(--space-lg);display:grid;gap:12px;margin-bottom:var(--space-md);scroll-margin-top:24px}
+    .source-item.active{border-color:#9cc5ff;box-shadow:0 0 0 3px #1677ff12}
+    .source-item:last-child{margin-bottom:0}
+    .source-head{display:flex;gap:12px;align-items:flex-start}
+    .source-item .source-meta{flex:1;min-width:0}
+    .source-item .source-meta h3{font-size:var(--font-lg);margin:0 0 6px}
+    .source-item .source-meta p{font-size:13px;color:#8ea0b8;margin:0;line-height:1.9}
+    .src-link{font-size:13px;color:#1677ff;text-decoration:none;justify-self:start}
+    .source-full{background:#f8fafd;border-radius:10px;padding:var(--space-md)}
+    .source-full .markdown h1{font-size:var(--font-lg);margin:0 0 8px}
     .topic-index{flex-shrink:0}.takeaways .num{flex-shrink:0}.adm-tabs-tab-wrapper{padding-left:8px;padding-right:8px}.adm-tabs-tab{padding-top:16px;padding-bottom:16px}.adm-collapse-panel-content{padding-top:8px;padding-bottom:16px}.adm-dialog-body{padding:24px 16px}.adm-dialog-footer .adm-dialog-action{padding:16px}.adm-toast-main{padding:16px}.adm-popup-close-icon{padding:8px}
     /* Separate content with whitespace instead of divider lines. */
     .topic-list .adm-collapse,.topic-list .adm-list{--border-top:none;--border-bottom:none;--border-inner:none}
@@ -60,7 +71,7 @@
     try {
       const [R, DOM, A, M, G] = await Promise.all([import('react'),import('react-dom/client'),import('antd-mobile'),import('react-markdown'),import('remark-gfm')]);
       const {createElement:h,useState,useEffect,useRef} = R;
-      const {Button,Tag,Tabs,Collapse,Popup,Input,Toast,Dialog} = A;
+      const {Button,Tag,Tabs,Collapse,Input,Toast,Dialog} = A;
       const key = sharedData.id==='original'?'agent-memory-topic-v1':'agent-memory-shared-'+sharedData.id;
       const makeId = () => typeof crypto.randomUUID==='function'?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
       const userQuery = '把我发来的几篇文章、笔记和聊天记录，整理成一个关于“Agent 记忆”的知识专题页。按照主题组织，提炼主要观点，保留原文来源，区分不同材料的共识和分歧。我希望先快速了解整体，再展开查看细节，以后还能继续添加资料。';
@@ -92,13 +103,13 @@
       const md = text => h('div',{className:'markdown'},h(M.default,{remarkPlugins:[G.default],components:{a:({node,...props})=>h('a',{...props,target:'_blank',rel:'noopener noreferrer'}),table:({node,...props})=>h('div',{className:'table-wrap'},h('table',props))}},text));
       function App(){
         const [added]=useState(()=>{const embedded=sharedData.sources.filter(isValidSource);let local=[];try {const data=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(data))local=data.filter(isValidSource);}catch{}return [...new Map([...embedded,...local].map(s=>[s.id,s])).values()];});
-        const [tab,setTab]=useState('themes');const [selected,setSelected]=useState('architecture');const [expanded,setExpanded]=useState(['architecture']);
-        const [source,setSource]=useState(null);const [quote,setQuote]=useState('');const [filter,setFilter]=useState('全部');const [search,setSearch]=useState('');const [saved,setSaved]=useState(true);const lower=useRef(null);
+        const [tab,setTab]=useState('themes');const [selected,setSelected]=useState('architecture');const [expanded,setExpanded]=useState(topics.map(t=>t.id));
+        const [activeSource,setActiveSource]=useState('');const sourceRefs=useRef({});const [filter,setFilter]=useState('全部');const [search,setSearch]=useState('');const [saved,setSaved]=useState(true);const lower=useRef(null);
         const sources=[...exampleSources,...added];const topic=topics.find(t=>t.id===selected);const associations=t=>sources.filter(s=>t.sources.includes(s.id)||s.topic===t.id);
         useEffect(()=>{try{localStorage.setItem(key,JSON.stringify(added));setSaved(true);}catch{setSaved(false);Toast.show({content:'浏览器保存失败，请导出备份'});}},[added]);
-        function openSource(id,excerpt=''){setSource(sources.find(s=>s.id===id));setQuote(excerpt);}
-        function chips(ids,excerpt=''){return h('div',{className:'source-links'},...ids.map(id=>{const s=sources.find(x=>x.id===id);return s&&h('button',{key:id,className:'source-chip',onClick:()=>openSource(id,excerpt)},`${s.example?'示例':'资料'} · ${s.title}`);}));}
-        function choose(id,open=false){setSelected(id);if(open){setTab('themes');setExpanded([id]);requestAnimationFrame(()=>lower.current?.scrollIntoView({behavior:'smooth',block:'start'}));}}
+        function goSource(id){setTab('sources');setFilter('全部');setSearch('');setActiveSource(id);requestAnimationFrame(()=>sourceRefs.current[id]?.scrollIntoView({behavior:'smooth',block:'start'}));}
+        function chips(ids){return h('div',{className:'source-links'},...ids.map(id=>{const s=sources.find(x=>x.id===id);return s&&h('button',{key:id,className:'source-chip',onClick:()=>goSource(id),'aria-label':`查看原文：${s.title}`},`${s.example?'示例':'资料'} · ${s.title}`);}));}
+        function choose(id,open=false){setSelected(id);if(open){setTab('themes');setExpanded(topics.map(t=>t.id));requestAnimationFrame(()=>lower.current?.scrollIntoView({behavior:'smooth',block:'start'}));}}
         function exportTopic(){
           const text=['# Agent 记忆 · 知识专题','> 演示主题整理；示例材料并非用户上传内容，未进行 AI 分析。','## 用户目标',userQuery,'## 主题',...topics.map(t=>`### ${t.title}\n${t.summary}\n\n${t.detail}\n\n来源：${associations(t).map(s=>s.title).join('、')}`),'## 共识（仅示例材料）',...consensus.map(c=>`### ${c.title}\n${c.text}\n来源：${c.ids.map(id=>sources.find(s=>s.id===id).title).join('、')}`),'## 分歧（仅示例材料）',...disagreements.map(d=>`### ${d.title}\n- ${d.al}：${d.a}\n- ${d.bl}：${d.b}\n${d.note}`),'## 全部来源及原文',...sources.map(s=>`### ${s.title} [${s.example?'示例材料':'用户添加'}]\n类型：${s.type}\n作者：${s.author||'未提供'}\n日期：${s.date}\n来源链接：${s.url||'未提供'}\n主题：${topics.find(t=>t.id===s.topic)?.title||topics.filter(t=>t.sources.includes(s.id)).map(t=>t.title).join('、')}\n观点状态：${s.stance||'示例整理'}\n人工提炼：${s.summary||'无'}\n\n${s.content}`)].join('\n\n');
           const url=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='Agent记忆-知识专题.md';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
@@ -136,7 +147,7 @@
           h('main',{className:'main'},
             h('header',{className:'page-header'},
               h('h1',null,'Agent 记忆'),
-              h('p',{className:'hint'},`${sources.length} 份资料 · ${topics.length} 个主题 · 示例专题`),
+              h('p',{className:'hint'},`${sources.length} 份资料 · ${topics.length} 个主题 · 全文同页`),
               h('div',{className:'actions'},h(Button,{size:'small',onClick:exportTopic},'导出'),h(Button,{size:'small',onClick:shareHtml},'分享'))
             ),
             h('section',{className:'card summary'},
@@ -152,19 +163,32 @@
                 ...topics.map(t=>h('button',{key:t.id,className:'graph-node'+(selected===t.id?' selected':''),style:{left:t.x+'%',top:t.y+'%'},onClick:()=>choose(t.id),'aria-pressed':selected===t.id,'aria-label':`${t.title}，${associations(t).length} 份资料`},h('span',{className:'node-title'},t.title),h('small',null,associations(t).length,' 份资料')))
               ),h('div',{className:'graph-detail'},
                 h('h3',null,topic.title),h('p',null,topic.summary),
-                h(Button,{fill:'none',color:'primary',size:'small',onClick:()=>choose(topic.id,true)},'查看详情 →')
+                h(Button,{fill:'none',color:'primary',size:'small',onClick:()=>choose(topic.id,true)},'跳到该主题 ↓')
               ))
             ),
-            h('section',{ref:lower,style:{scrollMarginTop:24}},h('div',{className:'subsection-tabs'},h(Tabs,{activeKey:tab,onChange:setTab},h(Tabs.Tab,{title:'主题脉络',key:'themes'}),h(Tabs.Tab,{title:'共识与分歧',key:'compare'}),h(Tabs.Tab,{title:`来源资料 ${sources.length}`,key:'sources'}))),
+            h('section',{ref:lower,style:{scrollMarginTop:24}},h('div',{className:'subsection-tabs'},h(Tabs,{activeKey:tab,onChange:setTab},h(Tabs.Tab,{title:'主题脉络',key:'themes'}),h(Tabs.Tab,{title:'共识与分歧',key:'compare'}),h(Tabs.Tab,{title:`来源原文 ${sources.length}`,key:'sources'}))),
               tab==='themes'&&h('div',{className:'card topic-list'},h(Collapse,{activeKey:expanded,onChange:setExpanded},...topics.map((t,i)=>h(Collapse.Panel,{key:t.id,title:h('div',{className:'topic-heading'},h('span',{className:'topic-index'},String(i+1).padStart(2,'0')),t.title,h('small',null,associations(t).length,' 份关联资料'))},h('div',{className:'topic-content'},md(t.detail),chips(t.sources),...added.filter(s=>s.topic===t.id).map(s=>h('div',{className:'viewpoint',key:s.id},h('div',{className:'viewpoint-title'},h(Tag,{color:s.stance==='不同意见'?'warning':'primary',fill:'outline'},s.stance),h('b',null,s.title)),h('p',null,s.summary||'原文已归档，尚未提炼观点。'),h('span',{className:'hint'},'用户人工标注 · 未核验'),chips([s.id])))))))),
               tab==='compare'&&h('div',null,h('div',{className:'compare-grid'},
                 h('section',{className:'card'},h('h2',{className:'compare-head'},'共识（示例）'),...consensus.map(c=>h('div',{key:c.title,className:'compare-row'},h('h3',null,c.title),h('p',null,c.text),chips(c.ids,c.quote)))),
                 h('section',{className:'card'},h('h2',{className:'compare-head'},'分歧（示例）'),...disagreements.map(d=>h('div',{key:d.title,className:'compare-row'},h('h3',null,d.title),h('div',{className:'side-by-side'},h('div',{className:'position'},h('b',null,d.al),d.a),h('div',{className:'position alt'},h('b',null,d.bl),d.b)),h('p',null,d.note),chips(d.ids)))))),
-              tab==='sources'&&h('section',{className:'card'},h('div',{className:'source-controls'},h('div',{className:'search'},h(Input,{value:search,onChange:setSearch,placeholder:'搜索标题、作者或原文','aria-label':'搜索资料',clearable:true})),h('div',{className:'filters'},...['全部','文章','笔记','聊天记录'].map(f=>h('button',{className:'filter'+(filter===f?' active':''),key:f,onClick:()=>setFilter(f),'aria-pressed':filter===f},f)))),filtered.length?filtered.map(s=>h('div',{className:'source-row',key:s.id},h('div',{className:'file-icon'},s.type==='文章'?'DOC':s.type==='笔记'?'NOTE':'CHAT'),h('div',{className:'source-meta'},h('h3',null,s.title),h('p',null,s.type,' · ',s.author||'作者未提供',' · ',s.date,' · ',s.example?'虚构示例':s.stance),h('p',{className:'source-excerpt'},s.summary||s.content.replace(/^#+ |\n/g,' ').slice(0,160))),h(Button,{size:'mini',fill:'none',color:'primary',onClick:()=>openSource(s.id)},'查看原文 ↗'))):h('div',{className:'empty'},'没有匹配的资料。试试其他关键词或筛选条件。'))
+              tab==='sources'&&h('div',null,
+                h('div',{className:'source-controls'},h('div',{className:'search'},h(Input,{value:search,onChange:setSearch,placeholder:'搜索标题、作者或原文','aria-label':'搜索资料',clearable:true})),h('div',{className:'filters'},...['全部','文章','笔记','聊天记录'].map(f=>h('button',{className:'filter'+(filter===f?' active':''),key:f,onClick:()=>setFilter(f),'aria-pressed':filter===f},f)))),
+                filtered.length?filtered.map(s=>h('article',{className:'source-item'+(activeSource===s.id?' active':''),key:s.id,ref:el=>{sourceRefs.current[s.id]=el;}},
+                  h('div',{className:'source-head'},
+                    h('div',{className:'file-icon'},s.type==='文章'?'DOC':s.type==='笔记'?'NOTE':'CHAT'),
+                    h('div',{className:'source-meta'},
+                      h('h3',null,s.title),
+                      h('p',null,s.type,' · ',s.author||'作者未提供',' · ',s.date,' · ',s.example?'虚构示例':'用户添加'),
+                      h('p',null,'关联主题：',(topics.filter(t=>t.sources.includes(s.id)||s.topic===t.id).map(t=>t.title).join('、'))||'未标注')
+                    )
+                  ),
+                  s.url&&validUrl(s.url)&&h('a',{className:'src-link',href:validUrl(s.url),target:'_blank',rel:'noopener noreferrer'},'打开原始来源 ↗'),
+                  h('div',{className:'source-full'},md(s.content.replace(/^#\s+[^\n]*\n+/,'')))
+                )):h('div',{className:'empty'},'没有匹配的资料。试试其他关键词或筛选条件。')
+              ),
             ),
             h('footer',{className:'footer'},h('span',null,saved?'资料保存在本机，分享可携带原文。':'本地保存失败，请导出备份。'))
-          ),
-          h(Popup,{visible:!!source,onMaskClick:()=>setSource(null),onClose:()=>setSource(null),showCloseButton:true,bodyStyle:{borderRadius:'18px 18px 0 0',maxWidth:850,left:'50%',transform:'translateX(-50%)',width:'100%'}},source&&h('div',{className:'drawer'},h(Tag,{color:source.example?'warning':'primary',fill:'outline'},source.example?'虚构示例原文':'用户添加的原文'),h('h2',null,source.title),h('div',{className:'drawer-meta'},source.type,' · ',source.author||'作者未提供',' · ',source.date,h('br'),source.url&&validUrl(source.url)?h('a',{href:validUrl(source.url),target:'_blank',rel:'noopener noreferrer'},'打开原始来源 ↗'):'无外部链接 · 全文保留在当前专题'),quote&&h('div',{className:'quote-callout'},h('strong',null,source.content.includes(quote)?'此来源中的关联原句':'关联观点提示 · 此来源未包含该原句'),source.content.includes(quote)?quote:'此组材料支持相关观点，但措辞不同。请阅读下方原文判断适用范围。'),md(source.content)))
+          )
         );
       }
       DOM.createRoot(root).render(h(App));
