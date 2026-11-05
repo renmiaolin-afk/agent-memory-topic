@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title>Markdown 工作台</title>
+  <link rel="stylesheet" href="https://unpkg.com/antd-mobile@5.39.0/bundle/style.css" />
+  <style>
+    :root { --adm-color-primary: #6558e8; --adm-radius-m: 12px; --adm-font-size-main: 14px; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f5f6fa; color: #252638; }
+    button, textarea { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 3px solid #a49cf8; outline-offset: 3px; }
+    .shell { max-width: 1180px; margin: auto; padding: 40px 24px max(24px, env(safe-area-inset-bottom)); }
+    .topbar, .actions, .panel-title, .status { display: flex; align-items: center; gap: 12px; }
+    .topbar { justify-content: space-between; margin-bottom: 32px; flex-wrap: wrap; }
+    .brand { display: flex; align-items: center; gap: 14px; }
+    .logo { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; background: #6558e8; color: white; font-size: 24px; font-weight: 800; box-shadow: 0 6px 18px #6558e830; }
+    h1 { margin: 0 0 5px; font-size: 24px; letter-spacing: -.6px; }
+    .subtitle, .status { color: #818498; font-size: 13px; }
+    .intro { margin-bottom: 22px; }
+    .intro h2 { font-size: 28px; margin: 0 0 10px; letter-spacing: -.8px; }
+    .intro p { color: #818498; margin: 0; line-height: 1.8; }
+    .controls { background: white; border: 1px solid #e9eaf2; border-radius: 16px; padding: 4px 16px; margin-bottom: 16px; }
+    .controls .adm-tabs-header { border-bottom: none; }
+    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+    .workspace.single { grid-template-columns: minmax(0, 1fr); }
+    .panel { min-width: 0; background: white; border: 1px solid #e9eaf2; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 32px #25263804; }
+    .panel-title { padding: 18px 22px; justify-content: space-between; border-bottom: 1px solid #eff0f5; font-weight: 600; }
+    .panel-title small { color: #9194a6; font-weight: 400; font-size: 12px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 6px; padding: 10px 16px; border-bottom: 1px solid #eff0f5; background: #fcfcfe; }
+    .toolbar .adm-button { min-width: 34px; color: #666b80; }
+    .editor { width: 100%; min-height: 560px; padding: 22px; border: 0; resize: vertical; outline: none; line-height: 1.85; color: #52586f; background: transparent; font: 14px/1.85 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; display: block; }
+    .editor:focus { box-shadow: inset 0 0 0 2px #6558e850; }
+    .markdown { padding: 16px 26px 26px; min-height: 610px; font-size: 15px; line-height: 1.85; overflow-wrap: anywhere; }
+    .markdown > :first-child { margin-top: 8px; }
+    .markdown h1 { font-size: 28px; margin: 20px 0 16px; }
+    .markdown h2 { font-size: 21px; margin: 28px 0 12px; padding-bottom: 8px; border-bottom: 1px solid #eff0f5; }
+    .markdown h3 { font-size: 17px; }
+    .markdown p { margin: 12px 0; }
+    .markdown blockquote { margin: 18px 0; border-left: 3px solid #8c80f4; padding: 8px 16px; background: #f5f3ff; color: #71678f; border-radius: 0 8px 8px 0; }
+    .markdown blockquote p { margin: 0; }
+    .markdown code { background: #f0eff9; color: #6956c4; padding: 2px 5px; border-radius: 4px; font-size: 13px; }
+    .markdown pre { padding: 18px; background: #26293b; color: #e5e6f3; border-radius: 12px; overflow-x: auto; }
+    .markdown pre code { background: transparent; padding: 0; color: inherit; }
+    .table-scroll { overflow-x: auto; margin: 16px 0; }
+    .markdown table { border-collapse: collapse; width: 100%; font-size: 14px; }
+    .markdown th, .markdown td { border: 1px solid #e9eaf2; padding: 9px 12px; }
+    .markdown th { background: #f8f8fc; font-weight: 600; }
+    .markdown input[type=checkbox] { accent-color: #6558e8; margin-right: 8px; }
+    .markdown .contains-task-list { padding-left: 0; list-style: none; }
+    .markdown img { max-width: 100%; border-radius: 10px; }
+    .markdown hr { border: 0; border-top: 1px solid #e9eaf2; margin: 24px 0; }
+    .status { margin-top: 18px; justify-content: space-between; flex-wrap: wrap; line-height: 1.8; }
+    .dot { display: inline-block; width: 6px; height: 6px; margin-right: 6px; border-radius: 50%; background: #43b897; }
+    .loading { padding: 80px 24px; text-align: center; color: #818498; line-height: 1.8; }
+    .empty { color: #a0a3b3; text-align: center; padding-top: 100px; }
+    @media (max-width: 700px) {
+      .shell { padding: 24px 16px max(20px, env(safe-area-inset-bottom)); }
+      .topbar { margin-bottom: 28px; gap: 18px; }
+      h1 { font-size: 21px; }
+      .intro h2 { font-size: 24px; }
+      .workspace { grid-template-columns: minmax(0, 1fr); }
+      .editor { min-height: 360px; padding: 18px; font-size: 16px; }
+      .markdown { padding: 16px 20px 24px; min-height: 360px; }
+      .actions { gap: 8px; }
+    }
+  </style>
+  <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.3.1",
+        "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
+        "react-dom": "https://esm.sh/react-dom@18.3.1?external=react",
+        "react-dom/client": "https://esm.sh/react-dom@18.3.1/client?external=react",
+        "antd-mobile": "https://esm.sh/antd-mobile@5.39.0?external=react,react-dom&bundle",
+        "react-markdown": "https://esm.sh/react-markdown@9.0.1?external=react&bundle",
+        "remark-gfm": "https://esm.sh/remark-gfm@4.0.1?bundle"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="root"><div class="loading" role="status">正在加载 Markdown 工作台…<br />首次打开需要联网加载组件，请稍候。</div></div>
+  <script type="module">
+    const rootElement = document.getElementById('root');
+    try {
+      const [ReactModule, ReactDOM, Antd, MarkdownModule, GfmModule] = await Promise.all([
+        import('react'), import('react-dom/client'), import('antd-mobile'), import('react-markdown'), import('remark-gfm')
+      ]);
+      const { createElement: h, useState, useEffect, useRef } = ReactModule;
+      const { Button, Tabs, Tag, Toast, Dialog } = Antd;
+      const ReactMarkdown = MarkdownModule.default;
+      const remarkGfm = GfmModule.default;
+      const storageKey = 'standalone-markdown-workbench-v1';
+      const sample = [
+        '# 让想法，清晰呈现', '',
+        '一个轻盈的 **Markdown 工作台**，让你专注于内容本身。', '',
+        '> 左侧写下想法，右侧即时预览。支持 GitHub Flavored Markdown。', '',
+        '## 今天的计划', '',
+        '- [x] 搭建一个简洁的工作空间',
+        '- [x] 支持 Markdown 实时预览',
+        '- [ ] 写下下一个好点子', '',
+        '## 功能一览', '',
+        '| 功能 | 说明 |', '| :--- | :--- |',
+        '| 组件库 | antd-mobile |', '| Markdown | react-markdown |',
+        '| GFM 扩展 | remark-gfm |', '| 草稿 | 本地自动保存 |', '',
+        '## 一小段代码', '',
+        '```javascript', 'const idea = "Make something wonderful";', 'console.log(idea);', '```', '',
+        '支持 **粗体**、*斜体*、~~删除线~~、`行内代码`，以及 [Markdown 指南](https://www.markdownguide.org/)。'
+      ].join('\n');
+      function App() {
+        const [text, setText] = useState(() => {
+          try { return localStorage.getItem(storageKey) ?? sample; } catch { return sample; }
+        });
+        const [mode, setMode] = useState('split');
+        const [saved, setSaved] = useState(false);
+        const editor = useRef(null);
+        const fileInput = useRef(null);
+        useEffect(() => {
+          setSaved(false);
+          const timer = setTimeout(() => {
+            try { localStorage.setItem(storageKey, text); setSaved(true); } catch { setSaved(false); }
+          }, 400);
+          return () => clearTimeout(timer);
+        }, [text]);
+        function insert(before, after = '') {
+          const field = editor.current;
+          if (!field) return;
+          const start = field.selectionStart;
+          const end = field.selectionEnd;
+          const selected = text.slice(start, end) || '文字';
+          setText(text.slice(0, start) + before + selected + after + text.slice(end));
+          requestAnimationFrame(() => {
+            field.focus();
+            field.setSelectionRange(start + before.length, start + before.length + selected.length);
+          });
+        }
+        function download() {
+          const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+          const anchor = document.createElement('a');
+          anchor.href = url;
+          anchor.download = '我的文稿.md';
+          document.body.appendChild(anchor);
+          anchor.click();
+          anchor.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1000);
+          Toast.show({ content: '已导出 Markdown' });
+        }
+        async function importFile(event) {
+          const file = event.target.files?.[0];
+          event.target.value = '';
+          if (!file) return;
+          if (file.size > 2 * 1024 * 1024) { Toast.show({ content: '请选择小于 2 MB 的文件' }); return; }
+          const confirmed = await Dialog.confirm({ content: '导入文件将替换当前内容，是否继续？', confirmText: '导入', cancelText: '取消' });
+          if (!confirmed) return;
+          try { setText(await file.text()); Toast.show({ content: '导入成功' }); }
+          catch { Toast.show({ content: '读取文件失败，请重试' }); }
+        }
+        async function reset() {
+          if (await Dialog.confirm({ content: '恢复示例会替换当前内容，是否继续？', confirmText: '恢复', cancelText: '取消' })) setText(sample);
+        }
+        const tool = (label, title, before, after) => h(Button, { key: title, size: 'mini', fill: 'none', title, 'aria-label': title, onClick: () => insert(before, after) }, label);
+        return h('main', { className: 'shell' },
+          h('header', { className: 'topbar' },
+            h('div', { className: 'brand' }, h('div', { className: 'logo', 'aria-hidden': true }, 'M↓'), h('div', null, h('h1', null, 'Markdown 工作台'), h('div', { className: 'subtitle' }, 'WRITE SIMPLE. THINK CLEAR.'))),
+            h('div', { className: 'actions' },
+              h(Button, { size: 'small', onClick: () => fileInput.current.click() }, '导入文稿'),
+              h(Button, { size: 'small', color: 'primary', onClick: download }, '导出 Markdown'),
+              h('input', { ref: fileInput, type: 'file', accept: '.md,.markdown,.txt,text/plain,text/markdown', hidden: true, onChange: importFile, 'aria-label': '导入 Markdown 文件' })
+            )
+          ),
+          h('section', { className: 'intro' }, h('h2', null, '好内容，从一个想法开始。'), h('p', null, '写作、记录、整理，在这里让每一份灵感都有清晰的模样。')),
+          h('div', { className: 'controls' }, h(Tabs, { activeKey: mode, onChange: setMode },
+            h(Tabs.Tab, { title: '双栏对照', key: 'split' }), h(Tabs.Tab, { title: '编辑', key: 'edit' }), h(Tabs.Tab, { title: '预览', key: 'preview' })
+          )),
+          h('div', { className: 'workspace' + (mode === 'split' ? '' : ' single') },
+            mode !== 'preview' && h('section', { className: 'panel', 'aria-label': 'Markdown 编辑区' },
+              h('div', { className: 'panel-title' }, h('span', null, 'Markdown'), h('small', null, '纯文本 · 无限可能')),
+              h('div', { className: 'toolbar' },
+                tool('H', '插入标题', '## '), tool('B', '粗体', '**', '**'), tool('I', '斜体', '*', '*'),
+                tool('S', '删除线', '~~', '~~'), tool('</>', '行内代码', '`', '`'),
+                tool('链接', '插入链接', '[', '](https://example.com)'), tool('待办', '插入任务', '- [ ] '),
+                h(Button, { size: 'mini', fill: 'none', onClick: reset, style: { marginLeft: 'auto' } }, '恢复示例')
+              ),
+              h('textarea', { ref: editor, className: 'editor', value: text, onChange: event => setText(event.target.value), spellCheck: false, 'aria-label': 'Markdown 源码', placeholder: '从这里开始写作…' })
+            ),
+            mode !== 'edit' && h('section', { className: 'panel', 'aria-label': 'Markdown 预览区' },
+              h('div', { className: 'panel-title' }, h('span', null, '实时预览'), h(Tag, { color: 'primary', fill: 'outline' }, 'GFM')),
+              h('article', { className: 'markdown' }, text.trim() ? h(ReactMarkdown, {
+                remarkPlugins: [remarkGfm],
+                components: {
+                  a: ({ node, ...props }) => h('a', { ...props, target: '_blank', rel: 'noopener noreferrer' }),
+                  table: ({ node, ...props }) => h('div', { className: 'table-scroll' }, h('table', props))
+                }
+              }, text) : h('div', { className: 'empty' }, '写下第一行，预览将在这里出现。'))
+            )
+          ),
+          h('footer', { className: 'status' },
+            h('span', null, h('span', { className: 'dot', style: { background: saved ? '#43b897' : '#b0b3c0' } }), saved ? '草稿已保存到此浏览器' : '正在保存 · 若不可用，请导出备份', ' · ', Array.from(text).length, ' 字符'),
+            h('span', null, 'antd-mobile / react-markdown / remark-gfm')
+          )
+        );
+      }
+      ReactDOM.createRoot(rootElement).render(h(App));
+    } catch (error) {
+      console.error('Markdown workbench initialization failed:', error);
+      rootElement.replaceChildren();
+      const message = document.createElement('div');
+      message.className = 'loading';
+      message.setAttribute('role', 'alert');
+      message.textContent = '组件加载失败。请检查网络是否能访问 esm.sh 和 unpkg.com，然后刷新页面。建议使用最新版 Chrome、Edge 或 Safari。';
+      rootElement.appendChild(message);
+    }
+  </script>
+</body>
+</html>
