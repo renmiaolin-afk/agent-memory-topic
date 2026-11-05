@@ -60,7 +60,7 @@
     try {
       const [R, DOM, A, M, G] = await Promise.all([import('react'),import('react-dom/client'),import('antd-mobile'),import('react-markdown'),import('remark-gfm')]);
       const {createElement:h,useState,useEffect,useRef} = R;
-      const {Button,Tag,Tabs,Collapse,Popup,Input,TextArea,Toast,Dialog} = A;
+      const {Button,Tag,Tabs,Collapse,Popup,Input,Toast,Dialog} = A;
       const key = sharedData.id==='original'?'agent-memory-topic-v1':'agent-memory-shared-'+sharedData.id;
       const makeId = () => typeof crypto.randomUUID==='function'?crypto.randomUUID():Array.from(crypto.getRandomValues(new Uint8Array(16)),n=>n.toString(16).padStart(2,'0')).join('');
       const userQuery = '把我发来的几篇文章、笔记和聊天记录，整理成一个关于“Agent 记忆”的知识专题页。按照主题组织，提炼主要观点，保留原文来源，区分不同材料的共识和分歧。我希望先快速了解整体，再展开查看细节，以后还能继续添加资料。';
@@ -87,31 +87,20 @@
         {title:'向量检索，还是关系图谱？',a:'简单个人助手可以从向量召回起步。',b:'跨实体、关系密集的任务需要图与语义结合。',al:'文章 A',bl:'讨论 C · 成员乙',ids:['s1','s3'],note:'适用场景不同，不能直接归纳为某一种检索方式更优。'},
         {title:'过期记忆如何处理？',a:'保留历史版本，标记失效。',b:'无保留价值或敏感的信息可以直接清除。',al:'笔记 B',bl:'清单 D',ids:['s2','s4'],note:'需进一步区分审计价值、隐私要求与存储成本。'}
       ];
-      const emptyForm = () => ({title:'',type:'文章',author:'',url:'',topic:'architecture',content:'',summary:'',stance:'待整理'});
       const validUrl = value => {try {const url=new URL(value);return ['http:','https:'].includes(url.protocol)?url.href:null;}catch{return null;}};
       const isValidSource = s => s && typeof s.id==='string' && typeof s.title==='string' && typeof s.content==='string' && s.content.length<=200000 && ['文章','笔记','聊天记录'].includes(s.type) && topics.some(t=>t.id===s.topic) && ['待整理','补充观点','支持','不同意见'].includes(s.stance) && typeof s.summary==='string';
       const md = text => h('div',{className:'markdown'},h(M.default,{remarkPlugins:[G.default],components:{a:({node,...props})=>h('a',{...props,target:'_blank',rel:'noopener noreferrer'}),table:({node,...props})=>h('div',{className:'table-wrap'},h('table',props))}},text));
       function App(){
-        const [added,setAdded]=useState(()=>{const embedded=sharedData.sources.filter(isValidSource);let local=[];try {const data=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(data))local=data.filter(isValidSource);}catch{}return [...new Map([...embedded,...local].map(s=>[s.id,s])).values()];});
+        const [added]=useState(()=>{const embedded=sharedData.sources.filter(isValidSource);let local=[];try {const data=JSON.parse(localStorage.getItem(key)||'[]');if(Array.isArray(data))local=data.filter(isValidSource);}catch{}return [...new Map([...embedded,...local].map(s=>[s.id,s])).values()];});
         const [tab,setTab]=useState('themes');const [selected,setSelected]=useState('architecture');const [expanded,setExpanded]=useState(['architecture']);
-        const [source,setSource]=useState(null);const [quote,setQuote]=useState('');const [addOpen,setAddOpen]=useState(false);const [form,setForm]=useState(emptyForm);const [filter,setFilter]=useState('全部');const [search,setSearch]=useState('');const [saved,setSaved]=useState(true);const upload=useRef(null);const lower=useRef(null);
+        const [source,setSource]=useState(null);const [quote,setQuote]=useState('');const [filter,setFilter]=useState('全部');const [search,setSearch]=useState('');const [saved,setSaved]=useState(true);const lower=useRef(null);
         const sources=[...exampleSources,...added];const topic=topics.find(t=>t.id===selected);const associations=t=>sources.filter(s=>t.sources.includes(s.id)||s.topic===t.id);
         useEffect(()=>{try{localStorage.setItem(key,JSON.stringify(added));setSaved(true);}catch{setSaved(false);Toast.show({content:'浏览器保存失败，请导出备份'});}},[added]);
         function openSource(id,excerpt=''){setSource(sources.find(s=>s.id===id));setQuote(excerpt);}
         function chips(ids,excerpt=''){return h('div',{className:'source-links'},...ids.map(id=>{const s=sources.find(x=>x.id===id);return s&&h('button',{key:id,className:'source-chip',onClick:()=>openSource(id,excerpt)},`${s.example?'示例':'资料'} · ${s.title}`);}));}
         function choose(id,open=false){setSelected(id);if(open){setTab('themes');setExpanded([id]);requestAnimationFrame(()=>lower.current?.scrollIntoView({behavior:'smooth',block:'start'}));}}
-        const update=(field,value)=>setForm(old=>({...old,[field]:value}));
-        async function readFile(event){const file=event.target.files?.[0];event.target.value='';if(!file)return;if(file.size>500000){Toast.show({content:'请选择小于 500 KB 的文本文件'});return;}try{update('content',await file.text());if(!form.title)update('title',file.name.replace(/\.(md|markdown|txt)$/i,''));}catch{Toast.show({content:'文件读取失败'});}}
-        function submit(){
-          if(!form.title.trim()||!form.content.trim()){Toast.show({content:'请填写资料标题和原文'});return;}
-          if(form.content.length>200000){Toast.show({content:'原文过长，请拆分资料'});return;}
-          if(form.url.trim()&&!validUrl(form.url.trim())){Toast.show({content:'来源链接需要是有效的 http 或 https 地址'});return;}
-          if(form.stance!=='待整理'&&!form.summary.trim()){Toast.show({content:'标注观点时，请填写人工提炼的主要观点'});return;}
-          setAdded(old=>[...old,{...form,title:form.title.trim(),content:form.content.trim(),summary:form.summary.trim(),url:form.url.trim(),id:makeId(),date:new Date().toLocaleDateString('sv-SE'),example:false}]);
-          setAddOpen(false);setForm(emptyForm());setTab('sources');setFilter('全部');setSearch('');Toast.show({content:'资料已加入，示例共识不会自动改写'});requestAnimationFrame(()=>lower.current?.scrollIntoView({behavior:'smooth',block:'start'}));
-        }
         function exportTopic(){
-          const text=['# Agent 记忆 · 知识专题','> 演示主题整理；示例材料并非用户上传内容。新增资料的观点由用户人工填写，未进行 AI 分析。','## 用户目标',userQuery,'## 主题',...topics.map(t=>`### ${t.title}\n${t.summary}\n\n${t.detail}\n\n来源：${associations(t).map(s=>s.title).join('、')}`),'## 共识（仅示例材料）',...consensus.map(c=>`### ${c.title}\n${c.text}\n来源：${c.ids.map(id=>sources.find(s=>s.id===id).title).join('、')}`),'## 分歧（仅示例材料）',...disagreements.map(d=>`### ${d.title}\n- ${d.al}：${d.a}\n- ${d.bl}：${d.b}\n${d.note}`),'## 全部来源及原文',...sources.map(s=>`### ${s.title} [${s.example?'示例材料':'用户添加'}]\n类型：${s.type}\n作者：${s.author||'未提供'}\n日期：${s.date}\n来源链接：${s.url||'未提供'}\n主题：${topics.find(t=>t.id===s.topic)?.title||topics.filter(t=>t.sources.includes(s.id)).map(t=>t.title).join('、')}\n观点状态：${s.stance||'示例整理'}\n人工提炼：${s.summary||'无'}\n\n${s.content}`)].join('\n\n');
+          const text=['# Agent 记忆 · 知识专题','> 演示主题整理；示例材料并非用户上传内容，未进行 AI 分析。','## 用户目标',userQuery,'## 主题',...topics.map(t=>`### ${t.title}\n${t.summary}\n\n${t.detail}\n\n来源：${associations(t).map(s=>s.title).join('、')}`),'## 共识（仅示例材料）',...consensus.map(c=>`### ${c.title}\n${c.text}\n来源：${c.ids.map(id=>sources.find(s=>s.id===id).title).join('、')}`),'## 分歧（仅示例材料）',...disagreements.map(d=>`### ${d.title}\n- ${d.al}：${d.a}\n- ${d.bl}：${d.b}\n${d.note}`),'## 全部来源及原文',...sources.map(s=>`### ${s.title} [${s.example?'示例材料':'用户添加'}]\n类型：${s.type}\n作者：${s.author||'未提供'}\n日期：${s.date}\n来源链接：${s.url||'未提供'}\n主题：${topics.find(t=>t.id===s.topic)?.title||topics.filter(t=>t.sources.includes(s.id)).map(t=>t.title).join('、')}\n观点状态：${s.stance||'示例整理'}\n人工提炼：${s.summary||'无'}\n\n${s.content}`)].join('\n\n');
           const url=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='Agent记忆-知识专题.md';document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
         }
         function buildShareFile(){
@@ -121,7 +110,7 @@
           const article=document.createElement('main');article.className='fallback';content.append(article);
           const append=(tag,text,parent=article)=>{const el=document.createElement(tag);el.textContent=text;parent.append(el);return el;};
           append('p','知序 / 可分享的知识专题');append('h1','Agent 记忆');
-          append('p','示例材料为虚构内容；新增资料由你整理。').className='offline-note';
+          append('p','示例材料为虚构内容。').className='offline-note';
           append('h2','1 分钟总览');append('p','Agent 记忆的核心，不是记住更多，而是在对的时刻，用上值得记住的信息。');
           topics.forEach(t=>{const d=append('details','');append('summary',t.title,d);append('p',t.summary,d);append('pre',t.detail,d);append('p','关联来源：'+associations(t).map(s=>s.title).join('、'),d);added.filter(s=>s.topic===t.id).forEach(s=>append('p',s.title+' · '+s.stance+'：'+(s.summary||'待整理'),d));});
           append('h2','共识（示例）');consensus.forEach(c=>{append('h3',c.title);append('p',c.text);append('p','来源：'+c.ids.map(id=>sources.find(s=>s.id===id).title).join('、'));});
@@ -132,7 +121,7 @@
           return new File(['<!doctype html>\n'+page.outerHTML],'Agent记忆-手机专题.html',{type:'text/html;charset=utf-8'});
         }
         async function shareHtml(){
-          const confirmed=await Dialog.confirm({title:'分享专题副本',content:'将包含全部 '+sources.length+' 份资料的完整原文（含 '+added.length+' 份新增资料）。发送前请确认没有隐私、敏感信息或不可转发的内容。接收者的修改不会同步回你这里。',confirmText:'生成并分享',cancelText:'取消'});
+          const confirmed=await Dialog.confirm({title:'分享专题副本',content:'将包含全部 '+sources.length+' 份资料的完整原文。发送前请确认没有隐私、敏感信息或不可转发的内容。接收者的修改不会同步回你这里。',confirmText:'生成并分享',cancelText:'取消'});
           if(!confirmed)return;
           try{
             const file=buildShareFile();
@@ -143,19 +132,18 @@
           }catch(error){console.error(error);Toast.show({content:'生成失败，请重试或使用 Markdown 导出'});}
         }
         const filtered=sources.filter(s=>(filter==='全部'||s.type===filter)&&`${s.title} ${s.author||''} ${s.content}`.toLowerCase().includes(search.toLowerCase()));
-        const field=(label,node)=>h('div',{className:'field'},h('label',null,label),node);
         return h('div',{className:'app'},
           h('main',{className:'main'},
             h('header',{className:'page-header'},
               h('h1',null,'Agent 记忆'),
               h('p',{className:'hint'},`${sources.length} 份资料 · ${topics.length} 个主题 · 示例专题`),
-              h('div',{className:'actions'},h(Button,{size:'small',onClick:exportTopic},'导出'),h(Button,{size:'small',onClick:shareHtml},'分享'),h(Button,{size:'small',color:'primary',onClick:()=>setAddOpen(true)},'＋ 添加资料'))
+              h('div',{className:'actions'},h(Button,{size:'small',onClick:exportTopic},'导出'),h(Button,{size:'small',onClick:shareHtml},'分享'))
             ),
             h('section',{className:'card summary'},
               h('h2',null,'概览'),
               h('p',{className:'summary-lead'},'在对的时刻，用上值得记住的信息。'),
               h('p',{className:'overview-text'},'分层存储，按需检索，持续更新；用任务效果验证记忆价值。'),
-              h('p',{className:'hint'},'结论来自虚构示例；新增资料由你整理。')
+              h('p',{className:'hint'},'结论来自虚构示例，仅作演示。')
             ),
             h('div',{className:'graph-layout section-gap',style:{scrollMarginTop:24}},
               h('section',{className:'card graph-card'},h('div',{className:'section-head'},h('h2',null,'知识图谱'),h('span',{className:'hint'},'点击查看')),h('div',{className:'graph-wrap'},
@@ -176,16 +164,7 @@
             ),
             h('footer',{className:'footer'},h('span',null,saved?'资料保存在本机，分享可携带原文。':'本地保存失败，请导出备份。'))
           ),
-          h(Popup,{visible:!!source,onMaskClick:()=>setSource(null),onClose:()=>setSource(null),showCloseButton:true,bodyStyle:{borderRadius:'18px 18px 0 0',maxWidth:850,left:'50%',transform:'translateX(-50%)',width:'100%'}},source&&h('div',{className:'drawer'},h(Tag,{color:source.example?'warning':'primary',fill:'outline'},source.example?'虚构示例原文':'用户添加的原文'),h('h2',null,source.title),h('div',{className:'drawer-meta'},source.type,' · ',source.author||'作者未提供',' · ',source.date,h('br'),source.url&&validUrl(source.url)?h('a',{href:validUrl(source.url),target:'_blank',rel:'noopener noreferrer'},'打开原始来源 ↗'):'无外部链接 · 全文保留在当前专题'),quote&&h('div',{className:'quote-callout'},h('strong',null,source.content.includes(quote)?'此来源中的关联原句':'关联观点提示 · 此来源未包含该原句'),source.content.includes(quote)?quote:'此组材料支持相关观点，但措辞不同。请阅读下方原文判断适用范围。'),md(source.content))),
-          h(Popup,{visible:addOpen,onMaskClick:()=>setAddOpen(false),onClose:()=>setAddOpen(false),showCloseButton:true,bodyStyle:{borderRadius:'18px 18px 0 0',maxWidth:720,left:'50%',transform:'translateX(-50%)',width:'100%'}},h('div',{className:'drawer'},h('h2',null,'添加资料'),h('p',{className:'drawer-meta'},'手动选择主题和观点，不会自动更新共识。'),h('form',{onSubmit:e=>{e.preventDefault();submit();}},
-            field('资料标题 *',h(Input,{value:form.title,onChange:v=>update('title',v),placeholder:'例如：一次关于长期记忆的讨论',maxLength:120,'aria-label':'资料标题'})),
-            h('div',{className:'two-fields'},field('材料类型',h('select',{value:form.type,onChange:e=>update('type',e.target.value),'aria-label':'材料类型'},...['文章','笔记','聊天记录'].map(x=>h('option',{key:x},x)))),field('作者 / 参与者',h(Input,{value:form.author,onChange:v=>update('author',v),placeholder:'可选',maxLength:120,'aria-label':'作者或参与者'}))),
-            field('原始来源链接',h(Input,{value:form.url,onChange:v=>update('url',v),placeholder:'https://…（可选）','aria-label':'原始来源链接'})),
-            h('div',{className:'two-fields'},field('关联主题（人工选择）',h('select',{value:form.topic,onChange:e=>update('topic',e.target.value),'aria-label':'关联主题'},...topics.map(t=>h('option',{key:t.id,value:t.id},t.title)))),field('观点状态（人工标注）',h('select',{value:form.stance,onChange:e=>update('stance',e.target.value),'aria-label':'观点状态'},...['待整理','补充观点','支持','不同意见'].map(x=>h('option',{key:x},x))))),
-            field('主要观点 / 与既有观点的关系',h(TextArea,{value:form.summary,onChange:v=>update('summary',v),placeholder:'选填；标注立场时请写明观点和依据。',rows:2,maxLength:2000,'aria-label':'主要观点'})),
-            field('完整原文 *（支持 Markdown）',h(TextArea,{value:form.content,onChange:v=>update('content',v),placeholder:'粘贴文章、笔记或聊天记录，保留原始措辞与上下文…',rows:7,maxLength:200000,'aria-label':'完整原文'})),
-            h('input',{type:'file',accept:'.md,.markdown,.txt,text/plain,text/markdown',hidden:true,ref:upload,onChange:readFile}),h(Button,{size:'small',fill:'outline',onClick:()=>upload.current.click()},'从 .md / .txt 读取原文'),h('div',{className:'form-actions'},h(Button,{size:'small',onClick:()=>setAddOpen(false)},'稍后再说'),h(Button,{size:'small',color:'primary',type:'submit'},'加入知识专题'))
-          )))
+          h(Popup,{visible:!!source,onMaskClick:()=>setSource(null),onClose:()=>setSource(null),showCloseButton:true,bodyStyle:{borderRadius:'18px 18px 0 0',maxWidth:850,left:'50%',transform:'translateX(-50%)',width:'100%'}},source&&h('div',{className:'drawer'},h(Tag,{color:source.example?'warning':'primary',fill:'outline'},source.example?'虚构示例原文':'用户添加的原文'),h('h2',null,source.title),h('div',{className:'drawer-meta'},source.type,' · ',source.author||'作者未提供',' · ',source.date,h('br'),source.url&&validUrl(source.url)?h('a',{href:validUrl(source.url),target:'_blank',rel:'noopener noreferrer'},'打开原始来源 ↗'):'无外部链接 · 全文保留在当前专题'),quote&&h('div',{className:'quote-callout'},h('strong',null,source.content.includes(quote)?'此来源中的关联原句':'关联观点提示 · 此来源未包含该原句'),source.content.includes(quote)?quote:'此组材料支持相关观点，但措辞不同。请阅读下方原文判断适用范围。'),md(source.content)))
         );
       }
       DOM.createRoot(root).render(h(App));
